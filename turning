@@ -1,0 +1,82 @@
+#include "rcc_stdlib.h"
+using namespace std;
+//PLEASE NOTE THE COMMENTS ARE THINGS WE NEED TO FIGURE OUT FIRST
+typedef enum {
+    WAIT,
+    TURN,
+    STOP
+ } turnstate_t;
+
+typedef enum {
+    DWELL,
+    INTEGRATE
+} integratestate_t
+
+int main() {
+    stdio_init_all();
+    sleep_ms(1500);
+    cyw43_arch_init();
+    cyw43_arch_gpio_put(0,1); 
+
+    rcc_init_i2c(); 
+    MPU6050 imu;
+    imu.begin(i2c1); 
+    imu.calibrate(); 
+
+    Motor motors;
+    MotorInit(&motors, RCC_ENA, RCC_ENB, 1000); 
+    MotorsOn(&motors);
+
+    uint32_t cur, prev; //current and previous time
+    uint32_t dur = 10000; //10ms CAN BE CHANGED
+
+    double theta = 0.0;
+    double turn_degrees; //INPUT HOW MUCH TO TURN BY IN EACH INCREMENT
+
+    turnstate_t robotstate = WAIT;
+    integratestate_t imustate = DWELL;
+
+while(true) {
+    imu.update_pico();
+    current_time = time_us_32();
+
+//----------------state machine for turning-------------------
+
+    switch(robotstate) {
+        case WAIT: 
+            MotorPower(&motors, 0,0);
+            
+            if() { //INSERT CONDITIONS TO SWITCH STATE
+                robotstate = TURN;
+                theta = 0.0;
+            }
+        break;
+
+        case TURN:
+            MotorPower(&motors, -50, 50);
+
+            if() { //INSERT CONDITIONS TO STIO TURNING
+                robotstate = STOP;
+            }
+        break;
+
+        case STOP:
+            MotorPower(&motors, 0,0);
+    }
+
+    switch(imustate) {
+        case DWELL:
+            if(cur - prev >= dur) {
+                imustate = iNTEGRATE;
+            }
+        break;
+
+        case INTEGRATE:
+            theta = theta + (imu.getAngVelZ() * dur / 1000000.0);
+            imustate = DWELL;
+            prev = cur;
+        break;
+    }
+}
+return 0;
+}
